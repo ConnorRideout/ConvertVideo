@@ -2,6 +2,11 @@
 
 A tool to help convert and compress video files with specified extensions (from config.ini) within a specified folder (and optionally its subfolders) to HEVC/AAC or VP9/OPUS.
 
+**Requirements:**
+
+[ffmpeg](https://www.ffmpeg.org/)  
+[nircmd](https://www.nirsoft.net/utils/nircmd.html) (only for the context menu scripts)
+
 ## Usage
 
 From command-line: py -m convertvideo \[PATH]
