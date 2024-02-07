@@ -1,36 +1,31 @@
 from concurrent.futures import ThreadPoolExecutor
+from win32console import GetConsoleWindow
 from textwrap import TextWrapper
 from sys import argv as sys_argv
 from datetime import datetime
 from PyQt5.QtCore import Qt
 from subprocess import run
+from time import time
 import logging
 
-from win32gui import (
-    GetWindowRect,
-    FindWindowEx,
-    MoveWindow
-)
 from PyQt5.QtWidgets import (
     QProgressDialog,
     QApplication
 )
-from time import (
-    sleep,
-    time
+from win32gui import (
+    GetWindowRect,
+    MoveWindow
 )
 from re import (
     escape as re_esc,
     sub as re_sub
 )
 
+from commandline import RunCmd
+
 from winnotify import (
     Messagebox as Mbox,
     PlaySound
-)
-from commandline import (
-    openfile,
-    RunCmd
 )
 
 from .lib.variables import *
@@ -89,20 +84,13 @@ class ConvertVideo:
 
     def setup(self, fpath: Path):
         # rename/resize/move window
-        RunCmd(["powershell", "-command",
-                f'$host.UI.RawUI.WindowTitle="Compress/Convert Video"; {CON_SZ_CMD}'])
-        loop = hwnd = 0
-        while loop < 20 and not hwnd:
-            sleep(0.1)
-            hwnd = FindWindowEx(None, None, None, "Compress/Convert Video")
-            loop += 1
-        if loop < 50:
-            # if win was found, move it
-            x, y, xw, yh = GetWindowRect(hwnd)
-            dx = x + CON_MOVE_BY
-            w = xw - x
-            h = yh - y
-            MoveWindow(hwnd, dx, y, w, h, True)
+        run(['powershell', '-command',
+             f'$host.UI.RawUI.WindowTitle="Compress/Convert Video"; {CON_SZ_CMD}'])
+        hwnd = GetConsoleWindow()
+        x, y, xw, yh = GetWindowRect(hwnd)
+        w = xw - x
+        h = yh - y
+        MoveWindow(hwnd, CON_X, CON_Y, w, h, True)
         # init vars
         self.app.setWindowIcon(ICON)
         dorun = Opt.getInput(fpath)
@@ -112,10 +100,10 @@ class ConvertVideo:
         elif fpath.is_dir():
             self.topfol = fpath
             srch = self.topfol.rglob if Opt.recurse else self.topfol.glob
-            self.files = [f for f in srch("*.*")
+            self.files = [f for f in srch('*.*')
                           if f.suffix in FTYPES
-                          and "[HEVC-AAC]" not in f.stem
-                          and "[VP9-OPUS]" not in f.stem]
+                          and '[HEVC-AAC]' not in f.stem
+                          and '[VP9-OPUS]' not in f.stem]
         else:
             self.topfol = fpath.parent
             self.files = [fpath]
@@ -123,7 +111,7 @@ class ConvertVideo:
 
     def run(self, fpath: Path):
         def formatTxt(*args: str) -> str:
-            return "\n".join([f'{f" {s} " if s else s:=^{CON_WD}}' for s in ("", *args, "")])
+            return '\n'.join([f'{f" {s} " if s else s:=^{CON_WD}}' for s in ("", *args, "")])
 
         # init vars
         t_start = datetime.now()
@@ -135,23 +123,37 @@ class ConvertVideo:
                         *Opt.getInfo()))
         sz_in = sum(f.stat().st_size for f in self.files) / 1024**2
         # compile data
-        progress = QProgressDialog("Building commands, please wait...\n",
+        progress = QProgressDialog("<u>Building commands, please wait...</u><br><br>",
                                    "Cancel",
                                    0,
                                    self.totct)
         progress.setWindowTitle("Compress/Convert Video")
-        progress.setMinimumWidth(800)
-        progress.setStyleSheet("font-size: 11pt;")
+        progress.setMinimumSize(500, 140)
+        progress.setStyleSheet('font-size: 11pt;')
         progress.setWindowModality(Qt.WindowModal)
+        progress.show()
         data: list[dict[str, U[Path, BuildCmd]]] = list()
         for i, pth in enumerate(self.files):
             if progress.wasCanceled():
                 progress.setValue(self.totct)
                 raise SystemExit
-            progress.setLabelText(f"Building commands, please wait...\n"
-                                  f"{pth.relative_to(self.topfol)}")
+            wrap = TextWrapper(width=65).wrap
+            rel_pth = pth.relative_to(self.topfol)
+            list_str = wrap(str(rel_pth))
+            if len(list_str) > 2:
+                fol = '\\'.join(rel_pth.parts[:-1])
+                shorten = 0
+                while len(list_str) > 2:
+                    shorten += 1
+                    pth_name = f'\\...{rel_pth.parts[-1][shorten:]}'
+                    list_str = wrap(fol + pth_name)
+            fill = ("<br>".join(list_str) +
+                    ("<br>" if len(list_str) == 1 else ""))
+            progress.setLabelText(
+                f"<u>Building commands, please wait...</u><br>{fill}")
             data.append(dict(pth_in=pth, info=BuildCmd(pth, Opt())))
             progress.setValue(i)
+            self.app.processEvents()
         progress.setValue(self.totct)
         # run
         print(f"[{str(datetime.now())[5:19]}]\nSTARTING...\n")
@@ -160,7 +162,7 @@ class ConvertVideo:
         # self.process(**data[0])
         # stop
         t_end = datetime.now()
-        h, m, s = str(t_end - t_start).split(":")
+        h, m, s = str(t_end - t_start).split(':')
         t_elapsed = f"{h:0>2}h {m:0>2}m {float(s):05.02f}s"
         sz_out = sz_in - self.dSize
         sz_difp = (1.0 - sz_out / sz_in) * 100
@@ -174,12 +176,12 @@ class ConvertVideo:
                f"Time elapsed: {t_elapsed}\n"
                f"Result: {self.dSize:.2f}MB ({sz_difp:02.2f}%) {'reduction' if self.dSize < 0 else 'increase'} in size")
         Mbox.showinfo(title="Processing Complete", message=msg)
-        run(["powershell", "clear"])
+        # run(['powershell', 'clear'])
         self.app.quit()
 
     def process(self, pth_in: Path, info: BuildCmd) -> None:
         if self.forceCancel:
-            self.results["skip"] += 1
+            self.results['skip'] += 1
             return
         # init vars
         pth_out, cmd, todo = info.pth_out, info.cmd, info.todo
@@ -194,15 +196,15 @@ class ConvertVideo:
 
         def getPath() -> str:
             fill = TextWrapper(width=round(CON_WD),
-                               subsequent_indent="    ").fill
+                               subsequent_indent='    ').fill
             namestr = fill(f'INPUT: "{pth_in.name}"')
             outstr = fill(f'OUTPUT: "{pth_out.name}"')
             if Opt.recurse:
                 ffol = str(pth_in.parent.relative_to(self.topfol))
                 folstr = fill(f'DIR: "{ffol}"')
-                return "\n".join([folstr, namestr, outstr])
+                return '\n'.join([folstr, namestr, outstr])
             else:
-                return "\n".join([namestr, outstr])
+                return '\n'.join([namestr, outstr])
 
         def getResults() -> str:
             # check if output is viable
@@ -214,8 +216,8 @@ class ConvertVideo:
                            '-show_entries', 'format=duration', '-of', 'csv=p=0'],
                           capture_output=True,
                           text=True).stdout.strip()
-            dur_chk = ((info.data.vid.dur - 0.5) <= float(dur_out) <=
-                       (info.data.vid.dur + 0.5)) if dur_out else False
+            dur_chk = ((info.data.vid.dur - DUR_MISMCH) <= float(dur_out) <=
+                       (info.data.vid.dur + DUR_MISMCH)) if dur_out else False
             if pth_out.exists() and not err_chk and dur_chk and not returncode:
                 sz_in = float(pth_in.stat().st_size / 1024**2)
                 sz_out = float(pth_out.stat().st_size / 1024**2)
@@ -230,32 +232,36 @@ class ConvertVideo:
                         try:
                             pth_in.chmod(0o777)
                             pth_in.unlink()
-                            pth_out.rename(pth_out.with_stem(pth_in.stem))
+                            fname = (pth_in.stem if not Opt.do_rename
+                                     else re_sub(RENAME_REGEX, '', pth_in.stem))
+                            pth_out.rename(pth_out.with_stem(fname))
                         except:
                             pass
                         if pth_out.exists():
                             resstr += "\n    COULDN'T REMOVE ORIGINAL FILE"
                 elif Opt.keep_fail:
                     self.dSize += sz_dif
-                    self.results["fail"] += 1
+                    self.results['fail'] += 1
                     resstr = ("CONVERSION SUCCESSFUL;\n"
                               f"   COMPRESSION INEFFECTIVE {sz_comp}")
                     if Opt.overwrite and Opt.overwrite_fail:
                         try:
                             pth_in.chmod(0o777)
                             pth_in.unlink()
-                            pth_out.rename(pth_out.with_stem(pth_in.stem))
+                            fname = (pth_in.stem if not Opt.do_rename
+                                     else re_sub(RENAME_REGEX, '', pth_in.stem))
+                            pth_out.rename(pth_out.with_stem(fname))
                         except:
                             pass
                         if pth_out.exists():
                             resstr += "\n    COULDN'T REMOVE ORIGINAL FILE"
                 else:
-                    self.results["fail"] += 1
+                    self.results['fail'] += 1
                     resstr = f"PROCESSING INEFFECTIVE {sz_comp}"
                     if not Opt.keep_error:
                         pth_out.unlink(missing_ok=True)
             else:
-                self.results["err"] += 1
+                self.results['err'] += 1
                 errstr = (f"INPUT\nreturncode <{returncode}>\n-- TRACEBACK -----\n{err.strip()}\n{'='*25}" if err
                           else f"OUTPUT\nreturncode <{returncode}>\n-- TRACEBACK -----\n{err_chk.strip()}\n{'='*25}" if err_chk
                           else f"PROCESSING\nreturncode <{returncode}>\nReason: mismatched durations (in={info.data.vid.dur}s, out={float(dur_out)}s)" if dur_out and not dur_chk
@@ -292,9 +298,9 @@ class ConvertVideo:
         if cmd:
             # cmd += '; pause'
             t_start = time()
-            returncode = RunCmd(["powershell", "-command", cmd],
-                                console="new",
-                                visibility="min").wait()
+            returncode = RunCmd(['powershell', '-command', cmd],
+                                console='new',
+                                visibility='min').wait()
             t_end = time()
             if returncode or t_end - t_start < 5:
                 # there was an error or processing took too short of a time
@@ -305,25 +311,25 @@ class ConvertVideo:
                     chk_cmd = re_sub(f' -y (.+?) "{re_esc(str(pth_out))}"',
                                      r" -v error \1 -f null -",
                                      info.ffmpeg_cmd)
-                    _, err = RunCmd(["powershell", "-command", chk_cmd],
-                                    console="new",
+                    _, err = RunCmd(['powershell', '-command', chk_cmd],
+                                    console='new',
                                     capture_output=True,
-                                    visibility="hide").communicate()
+                                    visibility='hide').communicate()
         # print results
         pathstr = getPath()
         if cmd:
             procstr = (f"PROCESSES:\n"
-                       f'  video -> {getProcesses("V")}\n'
-                       f'  audio -> {getProcesses("A")}\n'
-                       f'  subs  -> {getProcesses("S")}')
+                       f"  video -> {getProcesses('V')}\n"
+                       f"  audio -> {getProcesses('A')}\n"
+                       f"  subs  -> {getProcesses('S')}")
         else:
             procstr = "PROCESSES: skipped"
-            self.results["skip"] += 1
+            self.results['skip'] += 1
         dt_end = datetime.now()
-        h, m, s = str(dt_end - dt_start).split(":")
+        h, m, s = str(dt_end - dt_start).split(':')
         if not cmd:
             t_elapsed = ""
-            if pth_out.name in ["ERROR", "DELETED"]:
+            if pth_out.name in ['ERROR', 'DELETED']:
                 resstr = "INPUT COULD NOT BE FOUND"
             else:
                 resstr = "ALREADY COMPRESSED/CONVERTED/PROCESSED"
@@ -340,7 +346,7 @@ class ConvertVideo:
               f">> {resstr}\n")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     ConvertVideo()
 
 # window is 665x450

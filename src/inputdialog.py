@@ -16,13 +16,12 @@ class InputDialog(Ui_Dialog):
     def __init__(self):
         self.dlg = QDialog()
         self.setupUi(self.dlg)
-        self.frame_webm.hide()
-        self.frame_overwrite.hide()
         self.frame_adv.hide()
 
         self.cmbBox_outFrmt.currentTextChanged.connect(self._changed_output)
         self.chkBox_overwrite.released.connect(self._clicked_overwrite)
         self.chkBox_keepFail.released.connect(self._clicked_overwrite)
+        self.chkBox_doRename.released.connect(self._clicked_rename)
         self.toggleBtn.released.connect(self._clicked_advanced)
         self.chkBox_convVid.released.connect(self._clicked_conv_vid)
         self.btnbox.accepted.connect(self._submit)
@@ -39,6 +38,12 @@ class InputDialog(Ui_Dialog):
             self.frame_overwrite.show()
         elif not self.frame_overwrite.isHidden():
             self.frame_overwrite.hide()
+
+    def _clicked_rename(self):
+        if self.chkBox_doRename.isChecked():
+            self.frame_rename.show()
+        elif not self.frame_rename.isHidden():
+            self.frame_rename.hide()
 
     def _clicked_advanced(self):
         if self.toggleBtn.isChecked():
@@ -67,6 +72,8 @@ class InputDialog(Ui_Dialog):
             "Keep errored files": self.chkBox_keepError.isChecked(),
             "Scale to 720p": self.chkBox_doScale.isChecked(),
             "Crop blackspace": self.chkBox_doCrop.isChecked(),
+            "Rename ouput": self.chkBox_doRename.isChecked(),
+            "Rename regex": self.lineEdit_rename.text() if self.chkBox_doRename.isChecked() else None,
             "Convert video": self.chkBox_convVid.isChecked(),
             "Force convert video": self.chkBox_forceVid.isChecked() if self.chkBox_convVid.isChecked() else None,
             "Convert audio": self.chkBox_convAud.isChecked(),

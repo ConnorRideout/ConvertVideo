@@ -19,8 +19,11 @@ class _Cfg(_ConfigParser):
         self.optionxform = str
         self.read_file(open(Path(__file__).parent.with_name('config.ini')))
 
-    def getlines(self, sct, opt) -> tuple[str, ...]:
-        return tuple(self.get(sct, opt).strip().split('\n'))
+    def getlines(self, section: str, option: str) -> tuple[str, ...]:
+        return tuple(self.get(section, option).strip().split('\n'))
+
+    def getstr(self, section: str, option: str) -> str:
+        return self.get(section, option).strip().strip('"\'')
 
 
 _cfg = _Cfg()
@@ -39,7 +42,8 @@ CON_SZ_CMD = ('$ps = (Get-Host).ui.rawui; '
               '$bf = $ps.buffersize; '
               f'$bf.width = {CON_WD}; '
               '$ps.buffersize = $bf')
-CON_MOVE_BY = _cfg.getint(_sct, 'console_move_x')
+CON_X = _cfg.getint(_sct, 'console_x')
+CON_Y = _cfg.getint(_sct, 'console_y')
 
 _sct = 'Convert Video'
 FTYPES = _cfg.getlines(_sct, 'file_types')
@@ -47,8 +51,10 @@ NVENC = _cfg.getboolean(_sct, 'use_hevc_nvenc')
 CRF_VALS = tuple((int(ht), int(crf))
                  for ht, crf in [_split(r'\s*:\s*', val)
                                  for val in _cfg.getlines(_sct, 'ffmpeg_crf_values')])
+DUR_MISMCH = _cfg.getfloat(_sct, 'duration_mismatch_allow')
 
 _sct = 'Default Options'
+CUTOFF = _cfg.getint(_sct, 'playtime_cutoff')
 AUD_LANGS = {x[0]: x[1]
              for x in [line.split(':')
                        for line in _cfg.getlines(_sct, 'aud_stream_langs')]}
@@ -56,15 +62,16 @@ SUB_LANGS = {x[0]: x[1]
              for x in [line.split(':')
                        for line in _cfg.getlines(_sct, 'sub_stream_langs')]}
 STREAMS = max(0, _cfg.getint(_sct, 'stream_count'))
+RECURSE = _cfg.getboolean(_sct, 'recurse_folders')
 OVERWRITE = _cfg.getboolean(_sct, 'overwrite_original')
-DO_SCALE = _cfg.getboolean(_sct, 'scale_video')
-DO_CROP = _cfg.getboolean(_sct, 'crop_blackspace')
 KEEP_FAIL = _cfg.getboolean(_sct, 'keep_failures')
 OVERWRITE_FAIL = _cfg.getboolean(_sct, 'overwrite_failures')
 KEEP_ERROR = _cfg.getboolean(_sct, 'keep_errors')
-RECURSE = _cfg.getboolean(_sct, 'recurse_folders')
-CUTOFF = _cfg.getint(_sct, 'playtime_cutoff')
+DO_SCALE = _cfg.getboolean(_sct, 'scale_video')
+DO_CROP = _cfg.getboolean(_sct, 'crop_blackspace')
+RENAME = _cfg.getboolean(_sct, 'rename_output')
+RENAME_REGEX = _cfg.getstr(_sct, 'rename_regex')
 THREADS = max(1, _cfg.getint(_sct, 'thread_count'))
 if NVENC:
     CONV_THREADS = min(5, THREADS)
-ADD_PARAMS = _cfg.get(_sct, 'add_params').strip()
+ADD_PARAMS = _cfg.getstr(_sct, 'add_params')
