@@ -173,5 +173,21 @@ From command-line: py -m convertvideo \[PATH]
                 </dl>
             </td>
         </tr>
+        <tr>
+            <td align="center">4.2</td>
+            <td>
+                <dl>
+                    <dt>improvements</dt>
+                    <ul>
+                        <li>Made the duration mismatch testing much more exact by testing more duration variables from ffprobe</li>
+                        <li>Added the regex renaming option to the config</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>Fixed the regex renaming to actually use the user's input, rather than always the default</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
     </tbody>
 </table>

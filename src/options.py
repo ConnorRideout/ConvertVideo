@@ -27,6 +27,7 @@ class Options:
     do_crop: bool = DO_CROP
     do_rename: bool = RENAME
     rename_regex: str = RENAME_REGEX
+    rename_to: str = RENAME_TO
     vid: bool = True
     force_vid: bool = False
     aud: bool = True
@@ -95,6 +96,8 @@ class Options:
         InDlg.chkBox_doRename.setChecked(cls.do_rename)
         InDlg.lineEdit_rename.setText(cls.rename_regex)
         adjustSize(InDlg.lineEdit_rename)
+        InDlg.lineEdit_rename_to.setText(cls.rename_to)
+        adjustSize(InDlg.lineEdit_rename_to)
         InDlg.chkBox_convVid.setChecked(cls.vid)
         InDlg.chkBox_forceVid.setChecked(cls.force_vid)
         InDlg.chkBox_convAud.setChecked(cls.aud)
@@ -122,6 +125,7 @@ class Options:
             cls.do_crop = ans['Crop blackspace']
             cls.do_rename = ans['Rename ouput']
             cls.rename_regex = ans['Rename regex']
+            cls.rename_to = ans["Rename to"]
             cls.vid = ans['Convert video']
             cls.force_vid = ans['Force convert video']
             cls.aud = ans['Convert audio']
@@ -163,7 +167,7 @@ class Options:
             f"Keep errors: {'YES' if cls.keep_error else 'NO'}",
             f"Scale to 720p: {'YES' if cls.do_scale else 'NO'}",
             f"Crop blackspace: {'YES' if cls.do_crop else 'NO'}",
-            f"Rename output: {'YES' if cls.do_rename else 'NO'}"
+            f"Rename output: {'YES' if cls.do_rename else 'NO'}",
         ]
         if CON_WD > 53:
             if len(out) % 2:

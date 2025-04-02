@@ -74,6 +74,7 @@ class InputDialog(Ui_Dialog):
             "Crop blackspace": self.chkBox_doCrop.isChecked(),
             "Rename ouput": self.chkBox_doRename.isChecked(),
             "Rename regex": self.lineEdit_rename.text() if self.chkBox_doRename.isChecked() else None,
+            "Rename to": self.lineEdit_rename_to.text() if self.chkBox_doRename.isChecked() else None,
             "Convert video": self.chkBox_convVid.isChecked(),
             "Force convert video": self.chkBox_forceVid.isChecked() if self.chkBox_convVid.isChecked() else None,
             "Convert audio": self.chkBox_convAud.isChecked(),

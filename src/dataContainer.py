@@ -17,9 +17,12 @@ if TYPE_CHECKING:
     from .options import Options
 
 
-def ffprobe(pth_in: Path, streams: str, entries: str, frmt: str = 'csv=p=0') -> str:
-    res = run(['ffprobe', pth_in, '-v', 'error', '-select_streams', streams,
-               '-show_entries', entries, '-of', frmt],
+def ffprobe(pth_in: Path, streams: str, entries: str, frmt: str = 'csv=p=0', add_arg: str = '') -> str:
+    cmd = ['ffprobe', pth_in, '-v', 'error', '-select_streams', streams,
+           '-show_entries', entries, '-of', frmt]
+    if add_arg:
+        cmd.append(add_arg)
+    res = run(cmd,
               capture_output=True,
               text=True)
     return res.stdout.strip()
@@ -71,14 +74,14 @@ class DataContainer:
         def __init__(self, pth_in: Path, Opt: "Options"):
             raw = ffprobe(pth_in=pth_in,
                           streams='v:0',
-                          entries='stream=codec_name,width,height:format=duration',
+                          entries='stream=codec_name,width,height',
                           frmt='default=nw=1')
             try:
                 self.codec = re_search(
                     r'codec_name=(.+)', raw).group(1).lower()
                 self.ht = int(re_search(r'height=(.+)', raw).group(1))
                 self.wd = int(re_search(r'width=(.+)', raw).group(1))
-                self.dur = float(re_search(r'duration=(.+)', raw).group(1))
+                self.dur = self.getDuration(pth_in)
             except AttributeError:
                 sz = (pth_in.stat().st_size / 1024)
                 ans = Mbox.askquestion(title="Error Processing Item",
@@ -118,6 +121,22 @@ class DataContainer:
                 self.crop = f'-filter:v:0 {",".join(crop_scale)}'
             else:
                 self.crop = ""
+
+        @staticmethod
+        def getDuration(pth: Path):
+            def convertSexagesimalToSeconds(time_str: str):
+                h, m, s = [float(t) for t in time_str.split(':')]
+                return h * 3600 + m * 60 + s
+
+            raw = ffprobe(pth_in=pth,
+                          streams='v:0',
+                          entries='stream=duration:format=duration:stream_tags=duration',
+                          frmt='default=nw=1',
+                          add_arg='-sexagesimal')
+            durs = [convertSexagesimalToSeconds(d)
+                    for d in re_findall(r'(?i)duration=(.+)', raw)
+                    if d != 'N/A']
+            return min(durs)
 
     class _Aud:
         streams: str

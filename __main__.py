@@ -62,7 +62,13 @@ class ConvertVideo:
         fpath = Path(top_path).resolve()
         err = False
         # setup logging
-        logfile = Path(__file__).parent.joinpath('lib', 'logging.log')
+        logdir = Path(__file__).parent.joinpath('lib')
+        logfiles = list(logdir.glob('*.log'))
+        if len(logfiles) > 5:
+            logfiles[0].unlink()
+        logfile_name = f'logging_{datetime.now().strftime("%Y%m%d-%H%M%S")}.log'
+        logfile = logdir.joinpath(logfile_name)
+        logfile.touch()
         logging.basicConfig(filename=logfile,
                             filemode='w',
                             level=logging.DEBUG,
@@ -212,12 +218,11 @@ class ConvertVideo:
                           capture_output=True,
                           text=True,
                           cwd=pth_out.parent).stderr
-            dur_out = run(['ffprobe', pth_out, '-v', 'error', '-select_streams', 'v',
-                           '-show_entries', 'format=duration', '-of', 'csv=p=0'],
-                          capture_output=True,
-                          text=True).stdout.strip()
+            # check that the durations match
+            dur_out = info.data.vid.getDuration(pth_out)
             dur_chk = ((info.data.vid.dur - DUR_MISMCH) <= float(dur_out) <=
                        (info.data.vid.dur + DUR_MISMCH)) if dur_out else False
+            # parse
             if pth_out.exists() and not err_chk and dur_chk and not returncode:
                 sz_in = float(pth_in.stat().st_size / 1024**2)
                 sz_out = float(pth_out.stat().st_size / 1024**2)
@@ -233,7 +238,7 @@ class ConvertVideo:
                             pth_in.chmod(0o777)
                             pth_in.unlink()
                             fname = (pth_in.stem if not Opt.do_rename
-                                     else re_sub(RENAME_REGEX, '', pth_in.stem))
+                                     else re_sub(Opt.rename_regex, Opt.rename_to, pth_in.stem))
                             pth_out.rename(pth_out.with_stem(fname))
                         except:
                             pass
@@ -249,7 +254,7 @@ class ConvertVideo:
                             pth_in.chmod(0o777)
                             pth_in.unlink()
                             fname = (pth_in.stem if not Opt.do_rename
-                                     else re_sub(RENAME_REGEX, '', pth_in.stem))
+                                     else re_sub(Opt.rename_regex, Opt.rename_to, pth_in.stem))
                             pth_out.rename(pth_out.with_stem(fname))
                         except:
                             pass
@@ -302,7 +307,7 @@ class ConvertVideo:
                                 console='new',
                                 visibility='min').wait()
             t_end = time()
-            if returncode or t_end - t_start < 5:
+            if returncode or t_end - t_start < 2:
                 # there was an error or processing took too short of a time
                 if returncode == 3221225786:
                     err = "User closed the window"

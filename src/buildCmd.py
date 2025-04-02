@@ -104,10 +104,10 @@ class BuildCmd:
 
         # create paths
         hevcpth = self.pth_in.with_name(
-            f'[HEVC-AAC] {(self.pth_in.stem if not self.Opt.do_rename else re_sub(RENAME_REGEX, "", self.pth_in.stem))}'
+            f'[HEVC-AAC] {(self.pth_in.stem if not self.Opt.do_rename else re_sub(self.Opt.rename_regex, self.Opt.rename_to, self.pth_in.stem))}'
             f'{(self.Opt.output if self.Opt.output != "auto" else ".mkv" if self.data.sub.streams else ".mp4")}')
         vp9pth = self.pth_in.with_name(
-            f'[VP9-OPUS] {(self.pth_in.stem if not self.Opt.do_rename else re_sub(RENAME_REGEX, "", self.pth_in.stem))}.webm')
+            f'[VP9-OPUS] {(self.pth_in.stem if not self.Opt.do_rename else re_sub(self.Opt.rename_regex, self.Opt.rename_to, self.pth_in.stem))}.webm')
         # OPTION: DON'T CONVERT
         if self.Opt.vid == False:
             self.pth_out = self.pth_in.with_stem(

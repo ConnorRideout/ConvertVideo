@@ -71,6 +71,7 @@ DO_SCALE = _cfg.getboolean(_sct, 'scale_video')
 DO_CROP = _cfg.getboolean(_sct, 'crop_blackspace')
 RENAME = _cfg.getboolean(_sct, 'rename_output')
 RENAME_REGEX = _cfg.getstr(_sct, 'rename_regex')
+RENAME_TO = _cfg.getstr(_sct, 'rename_to')
 THREADS = max(1, _cfg.getint(_sct, 'thread_count'))
 if NVENC:
     CONV_THREADS = min(5, THREADS)
