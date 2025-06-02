@@ -52,6 +52,7 @@ CRF_VALS = tuple((int(ht), int(crf))
                  for ht, crf in [_split(r'\s*:\s*', val)
                                  for val in _cfg.getlines(_sct, 'ffmpeg_crf_values')])
 DUR_MISMCH = _cfg.getfloat(_sct, 'duration_mismatch_allow')
+IGNORE_DTS = _cfg.getboolean(_sct, 'ignore_invalid_dts')
 
 _sct = 'Default Options'
 CUTOFF = _cfg.getint(_sct, 'playtime_cutoff')

@@ -218,6 +218,8 @@ class ConvertVideo:
                           capture_output=True,
                           text=True,
                           cwd=pth_out.parent).stderr
+            if IGNORE_DTS and "non monotonically increasing dts" in err_chk:
+                err_chk = ""
             # check that the durations match
             dur_out = info.data.vid.getDuration(pth_out)
             dur_chk = ((info.data.vid.dur - DUR_MISMCH) <= float(dur_out) <=
